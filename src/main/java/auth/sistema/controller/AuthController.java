@@ -1,41 +1,52 @@
 package auth.sistema.controller;
 
-import auth.sistema.dto.LoginUserRequest;
-import auth.sistema.dto.RegisterUserRequest;
+
+import auth.sistema.dto.*;
+import auth.sistema.jwt.JwtService;
+import auth.sistema.model.User;
 import auth.sistema.service.UserService;
 import org.springframework.http.HttpStatus;
-
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.web.bind.annotation.*;
 
-@Controller
-@RequestMapping("api/auth")
+@RestController
+@RequestMapping("/api/auth")
 public class AuthController {
-    
-    private final UserService service;
-    
-    public AuthController(UserService service) {
-        this.service = service;
+
+    private final UserService userService;
+    private final JwtService jwtService;
+    private final AuthenticationManager authManager;
+
+    public AuthController(UserService userService, JwtService jwtService, AuthenticationManager authManager) {
+        this.userService = userService;
+        this.jwtService = jwtService;
+        this.authManager = authManager;
     }
-    
+
+    // 🧾 Registro de usuario
     @PostMapping("/register")
-    ResponseEntity<?> crear(@RequestBody RegisterUserRequest req) {
-        var res = service.registrar(req);
-        return ResponseEntity.status(HttpStatus.CREATED).body(res);
-        
+    public ResponseEntity<?> register(@RequestBody RegisterUserRequest request) {
+        User user = userService.register(request);
+       
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body("Usuario creado");
     }
-    
+
+    // 🔑 Login de usuario
     @PostMapping("/login")
-    
-    ResponseEntity<?> login(@RequestBody LoginUserRequest req) {
-        
-        var res = service.login(req);
-        
-        return ResponseEntity.ok("Bienvenido " + res.getEmail()+res.getUsername()+res.getRole());
-        
+    public ResponseEntity<?> login(@RequestBody LoginUserRequest request) {
+        // Autentica las credenciales
+        authManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                        request.getUsername(),
+                        request.getPassword()
+                )
+        );
+
+        User user = userService.getByUsername(request.getUsername());
+        String token = jwtService.generarToken(user);
+        return ResponseEntity.ok(new AuthResponse(user.getUsername(), token));
     }
-    
 }

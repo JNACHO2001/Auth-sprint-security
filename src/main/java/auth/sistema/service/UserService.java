@@ -1,77 +1,50 @@
 package auth.sistema.service;
 
-import auth.sistema.dto.AuthResponse;
-import auth.sistema.dto.LoginUserRequest;
 import auth.sistema.dto.RegisterUserRequest;
 import auth.sistema.model.Role;
 import auth.sistema.model.User;
 import auth.sistema.repository.UserRepository;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
-public class UserService {
+public class UserService implements UserDetailsService {
 
-    private final PasswordEncoder password;
+    private final UserRepository repo;
+    private final PasswordEncoder passwordEncoder;
 
-    private final UserRepository user;
-
-    public UserService(PasswordEncoder password, UserRepository user) {
-        this.password = password;
-        this.user = user;
+    public UserService(UserRepository repo, PasswordEncoder passwordEncoder) {
+        this.repo = repo;
+        this.passwordEncoder = passwordEncoder;
     }
 
-    public AuthResponse registrar(RegisterUserRequest req) {
-        if (user.existsByEmail(req.getEmail())) {
-            throw new RuntimeException("el correo ya esta registrado");
-
-        }
-        if (user.existsByUsername(req.getUsername())) {
-              throw new RuntimeException("el usuario ya esta registrado");
-
-            
-            
+    // 🔐 Registro
+    public User register(RegisterUserRequest req) {
+        if (repo.existsByUsername(req.getUsername())) {
+            throw new RuntimeException("El usuario ya existe");
         }
 
-        var user = new User();
-        user.setEmail(req.getEmail());
+        User user = new User();
         user.setUsername(req.getUsername());
-        user.setPassword(password.encode(req.getPassword()));
-        user.setRole(Role.USER);
-        var saved = this.user.save(user);
+        user.setEmail(req.getEmail());
+        user.setPassword(passwordEncoder.encode(req.getPassword()));
+        user.setRole(Role.ADMIN);
 
-        return new AuthResponse(saved.getEmail(), saved.getUsername(), saved.getRole().name());
-
-    }
-    
-    
-    public AuthResponse login(LoginUserRequest req) {
-      var user = this.user.findByUsername(req.getUsername()).orElseThrow(() -> new RuntimeException("no se encontro el usuario"));
-      
-        
-        if (!password.matches(req.getPassword(),user.getPassword())) {
-            
-            throw  new RuntimeException("la contyraseña es incorrecta");
-            
-        }
-        return  new AuthResponse(
-                user.getEmail(),
-                user.getUsername(),
-                user.getRole().name()
-        
-        
-        );
-        
-        
-        
-        
-
-        
-        
-        
-        
-    
-    
+        return repo.save(user);
     }
 
+    // 📦 Buscar usuario
+    public User getByUsername(String username) {
+        return repo.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado"));
+    }
+
+    //  Método obligatorio para UserDetailsService
+    @Override
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        return getByUsername(username);
+    }
 }

@@ -1,17 +1,17 @@
 package auth.sistema.dto;
 
 public class AuthResponse {
+
     private String username;
-    private String email;
-    private String role;
+
+    private String token;
 
     public AuthResponse() {
     }
 
-    public AuthResponse(String username, String email, String role) {
+    public AuthResponse(String username, String token) {
         this.username = username;
-        this.email = email;
-        this.role = role;
+        this.token = token;
     }
 
     public String getUsername() {
@@ -22,23 +22,12 @@ public class AuthResponse {
         this.username = username;
     }
 
-    public String getEmail() {
-        return email;
+    public String getToken() {
+        return token;
     }
 
-    public void setEmail(String email) {
-        this.email = email;
+    public void setToken(String token) {
+        this.token = token;
     }
-
-    public String getRole() {
-        return role;
-    }
-
-    public void setRole(String role) {
-        this.role = role;
-    }
-    
-    
-    
 
 }
